@@ -1,0 +1,51 @@
+---
+title: "Data Science on Blockchain NFTs with R"
+author: "By Thomas de Marchin (Senior Manager Statistics and Data Sciences at Pharmalex) and Milana Filatenkova (Manager Statistics and Data Sciences at Pharmalex)"
+date: "4/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+![Cryptopunks are the earliest versions of NFTs. Image from Cryptopunks.](cryptopunks.jpg)
+
+# Intro
+
+What is the blockchain? 
+What are NFTs? https://ethereum.org/en/nft
+What is R?
+
+Let’s first introduce ourselves: we are data scientists in the pharma industry, passionate by the blockchain and we love art. We thus decided to put these ingredients together to write this article.
+You probably know a few basics about the blockchain and how it works. But how to extract data from the blockchain?
+
+There are several market places where to buy NFTs. We will focus here on OpenSea, probably the largest NFT trading places one at the moment.  
+Fortunately for us, there are API which facilitates our work.
+
+
+
+```{r}
+library(tidyverse)
+library(httr)
+library(jsonlite)
+```
+
+# OpenSea
+
+
+
+```{r pressure, echo=TRUE}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# References
+
+https://docs.opensea.io/reference
+https://www.dataquest.io/blog/r-api-tutorial/
+https://ethereum.org/en/nft
+https://influencermarketinghub.com/nft-marketplaces
+https://www.r-bloggers.com/
