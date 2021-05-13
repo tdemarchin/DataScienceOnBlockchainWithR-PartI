@@ -1,5 +1,5 @@
 ---
-title: "Data Science on Blockchain NFTs with R"
+title: "Data Science on Blockchain with R. Part 1: reading the blockchain"
 author: "By Thomas de Marchin (Senior Manager Statistics and Data Sciences at Pharmalex) and Milana Filatenkova (Manager Statistics and Data Sciences at Pharmalex)"
 date: "4/11/2021"
 output: html_document
@@ -8,6 +8,10 @@ output: html_document
 ```{r setup, include=FALSE}
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+
+### To be removed at the end ###
+YourApiKeyToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9"
+
 ```
 
 ![Cryptopunks are the earliest versions of NFTs. Image from Cryptopunks.](cryptopunks.jpg)
@@ -15,32 +19,119 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
 # Intro
 
 What is the blockchain? 
-What are NFTs? https://ethereum.org/en/nft
+What are NFTs? NFTs are tokens that we can use to represent ownership of unique items. They let us tokenise things like art, collectibles, even real estate. They can only have one official owner at a time and they're secured by the Ethereum blockchain – no one can modify the record of ownership or copy/paste a new NFT into existence. You've probably heard of the artist Beeple who sold one of his NFT art for $69 million. For more information, see https://ethereum.org/en/nft, 
 What is R?
+Why doing data science on blockchain? https://www.blockchain-council.org/blockchain/blockchain-vs-data-science-which-is-better/
 
 Let’s first introduce ourselves: we are data scientists in the pharma industry, passionate by the blockchain and we love art. We thus decided to put these ingredients together to write this article.
 You probably know a few basics about the blockchain and how it works. But how to extract data from the blockchain?
 
-There are several market places where to buy NFTs. We will focus here on OpenSea, probably the largest NFT trading places one at the moment.  
+There are several market places where to buy NFTs: OpenSea, Rarible,... We will focus here on OpenSea, probably the largest NFT trading places one at the moment.  
+
+
 Fortunately for us, there are API which facilitates our work.
 
-
-
 ```{r}
+# First, let's load a few useful packages
 library(tidyverse)
 library(httr)
 library(jsonlite)
 ```
 
-# OpenSea
+# OpenSea API
 
+see https://docs.opensea.io/reference
 
+```{r}
+# Retrieve sold NFTs 
+resOpenSea <- GET("https://api.opensea.io/api/v1/events",
+          query = list(limit=300, #number of events to retrieve
+                       event_type="successful", #retrieve only the sales
+                       only_opensea="true")) #retrieve only sales from the opensea website
 
-```{r pressure, echo=TRUE}
+# Convert the raw unicode (not human friendly) into JSON format 
+# Don't forget the option flatten=TRUE, otherwise the objects will be a complex list of list of list, impossible to work with
+dataOpenSea <- fromJSON(rawToChar(resOpenSea$content), flatten=TRUE)[[1]] 
 
+# There are a lot of columns. We will have to clean a bit.
+# Let's start removing the one containing only NA values
+dataOpenSea <- dataOpenSea %>% select_if(~!all(is.na(.)))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+There is not a lot of information on the meaning of the information contained in this dataset. I thus selected a few columns which seemed to contain interesting information (at least that I could understand).
+
+```{r}
+# Let's select a few columns with interesting information
+dataOpenSea <- dataOpenSea %>% select("collection_slug", "contract_address", "id", "quantity", "payment_token.name", "total_price", "asset.asset_contract.address", "asset.asset_contract.asset_contract_type", "asset.asset_contract.created_date", "asset.asset_contract.name", "seller.address", "transaction.timestamp", "winner_account.address",
+      "payment_token.usd_price", "payment_token.eth_price", "asset.asset_contract.schema_name") 
+# to remove "asset.asset_contract.address", "payment_token.usd_price", "payment_token.eth_price", "asset.asset_contract.created_date"
+
+
+# Get a glimpse of the data 
+glimpse(dataOpenSea)
+```
+
+So based on my guess, we have:
+
+- collection_slug: The collection to which the item belong
+- contract_address: All the sales are managed by a contract (a piece of code / a software) which send the NFT to the winner of the bid once requirements are met. This is the address of the OpenSea contract. We see that there is only one adress for all the sales, which means that all sales are managed by the same contract.
+- id: A unique identifier for each sale
+- quantity: The number of items sold per transaction (see fungible / semi fungible below). As in the supermaket, you can buy 1 apple or 20.
+- payment_token.name: The cryptocurrency used to buy the item. Let's have a look at the distribution:
+```{r}
+dataOpenSea %>% group_by(payment_token.name) %>% summarise(n=n())
+```
+We see that most sales are made in Ether (note that Wrapped Ether can be considered as Ether), let's focus on these sales for the rest of the article.
+
+- total_price: The cost paid by the winner. For Ether, this is expressed in Wei, the smallest denomination of ether. 1 ether = 1,000,000,000,000,000,000 wei (10^18).  
+- seller.address: The address of the seller
+- winner_account.address: The address of the buyer
+- transaction.timestamp: Date of the transaction
+
+```{r}
+# Change the format of some columns to something more adapted than character
+dataOpenSea <- dataOpenSea %>% mutate(quantity=as.numeric(quantity), total_price=as.numeric(total_price), 
+                          transaction.timestamp=as.Date(transaction.timestamp),
+                          asset.asset_contract.asset_contract_type=factor(asset.asset_contract.asset_contract_type)) 
+
+# filter on sales in ETH
+dataOpenSea <- dataOpenSea %>% filter(payment_token.name %in% c("Ether", "Wrapped Ether"))
+
+
+# Convert the price in Ether and then USD (at a price of 2.723USD per ETH when this article was written). We divided by the quantity as one sale can contain multiple items.
+ETHprice <- mean(as.numeric(dataOpenSea$payment_token.usd_price))
+dataOpenSea <- dataOpenSea %>% mutate(priceUSD = total_price / 10^18 * ETHprice / quantity)
+``` 
+
+We see that most sales are between 0 and 10000USD (which is already a lot!) and we have a few outlying sales above 20000USD.
+```{r}
+# Let's make an histogram of this
+ggplot(dataOpenSea, aes(priceUSD)) + geom_histogram() + labs(x="Price (USD)", title="Price per sale")
+```
+
+Well, all this is nice but there is a big drawback... OpenSea API limits the number of events to the last 300... There is not that much we can do about it if we use their API.
+We saw that retrieving data directly from the blockchain can be quite complex. There are hopefully services like etherscan which allows you to explore Ethereum Blocks and guess what? They also developed an API!
+
+# Etherscan API
+
+Where do we start? From the data we extracted from OpenSea, we saw that the address of their contract is "0x7be8076f4ea4a4ad08075c2508e481d6c946d12b". Let's scan this address and see what wr can If we enter this address in EtherScan and filter on the completed transaction (i.e. the transsactions validated by the network), https://etherscan.io/txs?a=0x7be8076f4ea4a4ad08075c2508e481d6c946d12b, we see an incredible amount of them (848,965 at the time of writting.) Of course, not all of them are related to a sale. We see a lot of transaction with a value of 0 ether. This can be for example approval of actions, maintenance... 
+
+```{r}
+resEtherScan <- GET("https://api.etherscan.io/api",
+          query = list(module="account", 
+                       action="txlist", 
+                       address="0x7Be8076f4EA4A4AD08075C2508e481d6C946D12b",
+                       startblock="12000000",
+                       endblock="latest",
+                       sort="asc",
+                       apikey=YourApiKeyToken))
+# Convert the raw unicode (not human friendly) into JSON format 
+# Don't forget the option flatten=TRUE, otherwise the objects will be a complex list of list of list, impossible to work with
+dataEtherScan <- fromJSON(rawToChar(resEtherScan$content), flatten=TRUE)$result
+
+https://api.etherscan.io/api?module=account&action=txlist&address=0xddbd2b932c763ba5b1b7ae3b362eac3e8d40121a&startblock=0&endblock=99999999&sort=asc&apikey=UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9
+```
+
 
 # References
 
