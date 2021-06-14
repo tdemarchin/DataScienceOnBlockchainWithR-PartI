@@ -1,5 +1,5 @@
 ---
-title: "Data Science on Blockchain with R. Part 1: reading the blockchain"
+title: "Data Science on Blockchain with R. Part I: Reading the blockchain"
 author: "By Thomas de Marchin (Senior Manager Statistics and Data Sciences at Pharmalex) and Milana Filatenkova (Manager Statistics and Data Sciences at Pharmalex)"
 date: "JUN2021"
 output: html_document
@@ -11,12 +11,11 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
 
 ### To be removed at the end ###
 EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9"
-
 ```
 
-![Cryptopunks are the earliest versions of NFTs. Image from Cryptopunks.](cryptopunks.jpg)
+![CryptoPunks are the earliest versions of NFTs. Image from www.larvalabs.com/cryptopunks.](figures/cryptopunks.jpg)
 
-# Intro
+# Introduction
 
 ***What is the Blockchain:*** A blockchain is a growing list of records, called blocks, that are linked together using cryptography. It is used for recording transactions, tracking assets, and building trust between participating parties. Primarily known for Bitcoin and cryptocurrencies application, Blockchain is now used in almost all domains, including supply chain, healthcare, logistic, identity management... Hundreds of blockchains exist with their own specifications and applications: Bitcoin, Ethereum, Tezos...
 
@@ -28,13 +27,13 @@ EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9"
 
 ***What is an API:*** An API is a software intermediary that allows two applications to talk to each other. APIs are designed to help developers make requests to another software (i.e. downloading information) and getting results in predefined easy to read format, without having to understand how this software works.
 
-There are already several articles dealing with blockchain data analysis in R, but most of them focus on price forecasting. Obtaining data on the cryptocurrencies price is quite straightforward, there are many databases available on internet. But how to actually read the blockchain? In this article, we will focus on reading blockchain transactions. Not all transactions but specifically, transactions related to NFTs. We will read the Ethereum blockchain, probably the top one used to trade NFTs. Several market places allowing to trade NFTs exist: OpenSea, Rarible... We will focus here on OpenSea, the largest NFT trading places one at the moment.
+There are already several articles dealing with blockchain data analysis in R, but most of them focus on price forecasting. Obtaining data on the cryptocurrencies price is quite straightforward, there are many databases available on internet. But how to actually read the blockchain? In this article, we will focus on reading blockchain transactions. Not all transactions but specifically, transactions related to NFTs. We will read the Ethereum blockchain, probably the top one used to trade NFTs. There exist several market places that that serve as trading platforms for  NFTs: OpenSea, Rarible… We will focus here on OpenSea, the largest NFT trading platform  at the moment.
 
-**Reading the raw blockchain is possible but it is hard. First of all, you have to setup a node and download the content of the blockchain (approximately 7TB at the time of writing), it is going to take some time to synchronize... Secondly, the data are stored sequentially which requires developing specific tools to follow a transaction. Third, the structure of the block is particularly difficult to read. As an example, a typical transaction on the Ethereum network is shown below. There are between 200 and 300 transactions per block and at the time of writing, we are at block 12586122.**
+Reading the raw blockchain is possible but it is hard. First of all, you have to setup a node and download the content of the blockchain (approximately 7TB at the time of writing). It may take a while to synchronize… Secondly, the data are stored sequentially which requires developing specific tools to follow a transaction. Third, the structure of the block is particularly difficult to read. As an example, a typical transaction on the Ethereum network is shown below. There are between 200 and 300 transactions per block and at the time of writing, we are at block 12586122.
 
-![Figure 1: Each block in the chain contains some data and a ‘hash’ – a digital fingerprint that is generated from the data contained within the block using cryptography. Every block also includes the hash from the previous block. This becomes part of the data set used to create the newer block’s hash, which is how the chain is linked together. Image from Cryptopunks. Source: ig.com.](blocks.png)
+![Figure 1: Each block in the chain contains some data and a ‘hash’ – a digital fingerprint that is generated from the data contained within the block using cryptography. Every block also includes the hash from the previous block. This becomes part of the data set used to create the newer block’s hash, which is how blocks are assembled into a chain. Image from ig.com.](figures/blocks.png)
 
-![Figure 2: Structure of a transaction.](transactionStructure.png)
+![Figure 2: Structure of a transaction.](figures/transactionStructure.png)
 
 Fortunately for us, there are APIs which facilitate our work.
 
@@ -45,6 +44,7 @@ library(httr)
 library(jsonlite)
 library(scales)
 library(waffle)
+library(ggrepel)
 ```
 
 # OpenSea API
@@ -89,18 +89,18 @@ dataOpenSea <- dataOpenSea %>% select("collection_slug",
 glimpse(dataOpenSea)
 ```
 
-Based on my guess, we have:
+My guess is - here we have:
 
--   collection_slug: The collection to which the item belong
--   contract_address: All the sales are managed by a contract (a piece of code / a software) which send the NFT to the winner of the bid. This is the address of the OpenSea contract. We see that there is only one address for all the sales, which means that all sales are managed by the same contract.
--   id: A unique identifier for each sale
--   quantity: The number of items sold per transaction (see fungible / semi fungible below). As in the supermarket, you can buy 1 apple or 20.
--   payment_token.name: The cryptocurrency used to buy the item.
--   total_price: The cost paid by the winner. For Ether, this is expressed in Wei, the smallest denomination of ether. 1 ether = 1,000,000,000,000,000,000 Wei (10\^18).
--   seller.address: The address of the seller
--   transaction.timestamp: Date of the transaction
--   winner_account.address: The address of the buyer
--   payment_token.usd_price: The price of one token used to make the transaction in USD
+-   **collection_slug:** The collection to which the item belongs
+-   **contract_address:** All the sales are managed by a contract (a piece of code / a software) which sends the NFT to the winner of the bid. This is the address of the OpenSea contract. We can see that there is only one address for all the sales, which means that all sales are managed by the same contract.
+-   **id:** A unique identifier for each sale
+-   **quantity:** The number of items sold per transaction (see fungible / semi fungible below). As in the supermarket, you can buy 1 apple or 20.
+-   **payment_token.name:** The cryptocurrency used to buy the item.
+-   **total_price:** The cost paid by the winner. For Ether, this is expressed in Wei, the smallest denomination of ether. 1 ether = 1,000,000,000,000,000,000 Wei (10\^18).
+-   **seller.address:** The address of the seller
+-   **transaction.timestamp:** Date of the transaction
+-   **winner_account.address:** The address of the buyer
+-   **payment_token.usd_price:** The price of one token used to make the transaction in USD
 
 Let's have a look at the distribution of currencies:
 
@@ -112,7 +112,7 @@ dataOpenSea %>%
 
 We see that most sales are made in Ether (note that Wrapped Ether can be considered the same as Ether), let's focus on these Ether sales for the rest of the article.
 
-```{r}
+```{r fig.cap=c("Histogram of the price per sale. Data from OpenSea API.", "Pie chart of the price per sale. Data from OpenSea API.", "Waffle chart of the price per sale. Data from OpenSea API.")}
 # Change the format of some columns to something more adapted than character
 dataOpenSea <- dataOpenSea %>% 
   mutate(quantity=as.numeric(quantity), 
@@ -131,8 +131,9 @@ dataOpenSea <- dataOpenSea %>% mutate(priceUSD = total_price / 10^18 * payment_t
 # Histogram of the price distribution (with a log scale as prices are quite spread)
 pHistoOpenSea <- ggplot(dataOpenSea, aes(priceUSD)) + 
   geom_histogram() + 
-  labs(x="Price (USD)", title="Price per sale") + 
+  labs(x="Price (USD)") + 
   scale_x_log10(labels = comma)
+ggsave("figures/histoOpenSea.png", pHistoOpenSea, height=7, width=7)
 pHistoOpenSea
 
 # Pie chart 
@@ -150,22 +151,28 @@ dataPieChartOpenSea <- dataOpenSea %>%
 pPieChartOpenSea <- ggplot(dataPieChartOpenSea, aes(x="", y=percent, fill=cut))+
 geom_bar(width = 1, stat = "identity") +
   coord_polar("y", start=0) +
-  geom_text(aes(x=1.3, y = cumsum(percent) - percent/2, label=label)) +
+  geom_text_repel(aes(y = cumsum(percent) - percent/2, label=label)) +
   theme_void()
+ggsave("figures/pieChartOpenSea.png", pPieChartOpenSea, height=7, width=7)
 pPieChartOpenSea
 
 # Waffle chart
-pWaffle <- waffle(dataPieChartOpenSea, rows = 8, reverse=TRUE)
-pWaffle
+pWaffleOpenSea <- waffle(dataPieChartOpenSea, rows = 8, reverse=TRUE)
+ggsave("figures/waffleChartOpenSea.png", pWaffleOpenSea, height=5, width=7)
+pWaffleOpenSea
 ```
 
-Well, all this is nice but there is a big drawback... OpenSea API limits the number of events to the last 300 transactions. There is not that much we can do about it if we use their API. **Also, we didn't read the blockchain yet. Instead, we downloaded data pre-processed by OpenSea. This is nice but what if we want to read the Blockchain (i.e. the blocks)?** We saw that retrieving data directly from the blockchain can be quite complex. There are hopefully services like Etherscan which allows you to explore Ethereum Blocks in an easy way and guess what? They also developed an API!
+This looks pretty nice but there is a big drawback… OpenSea API limits the number of events to the last 300 transactions. There is not that much we can do about it if we use their API. Also, the downloaded transactions are data pre-processed by OpenSea and not the blockchain itself. This is already a good start to have the information about transactions, but what if we wanted to read the the blocks? We have previously seen that retrieving data directly from the blockchain can be quite complex. Hopefully, there are services like Etherscan that allow you to explore Ethereum Blocks in an easy way. And guess what? They also developed an API!
 
 # EtherScan API
 
-EtherScan is a block explorer, which allows users to view information about transactions that have been submitted to the Ethereum blockchain, verify contract code, visualize network data... We can therefore use it to read any transaction involving NFTs! Where do we start? Let's focus again on OpenSea: from the data we extracted above, we saw that the address of their contract is "0x7be8076f4ea4a4ad08075c2508e481d6c946d12b". If we enter this address in EtherScan and filter on the completed transaction (i.e. the transactions validated by the network, not the one waiting to be approved), <https://etherscan.io/txs?a=0x7be8076f4ea4a4ad08075c2508e481d6c946d12b>, we see an incredible amount of them (848,965 at the time of writing.) Of course, not all of them are related to a sale. Let's see what we can do:
+EtherScan is a block explorer, which allows users to view information about transactions that have been submitted to the Ethereum blockchain, verify contract code, visualize network data... We can therefore use it to read any transaction involving NFTs! EtherScan limits the number of transactions to 10000 in its free version, which is much better than with the OpenSea API and you can still subscribe if you need more. 
 
-```{r}
+Where do we start? Let's focus again on OpenSea: from the data we extracted above, we saw that the address of their contract is "0x7be8076f4ea4a4ad08075c2508e481d6c946d12b". If we enter this address in EtherScan and filter on the completed transaction (i.e. the transactions validated by the network, not the one waiting to be approved), <https://etherscan.io/txs?a=0x7be8076f4ea4a4ad08075c2508e481d6c946d12b>, we see an incredible amount of them (848,965 at the time of writing.) Of course, not all of them are related to sales.
+
+Let’s see what we can do with these data.
+
+```{r fig.cap=c("Histogram of the price per sale. Data from EtherScan API.", "Pie chart of the price per sale. Data from EtherScan API.", "Waffle chart of the price per sale. Data from EtherScan API.")}
 # Retrieve the last 10000 transactions (maximum allowed by Etherscan) from the OpenSea contract
 resEtherScan <- GET("https://api.etherscan.io/api",
           query = list(module="account", 
@@ -178,11 +185,11 @@ resEtherScan <- GET("https://api.etherscan.io/api",
 # Don't forget the option flatten=TRUE, otherwise the objects will be a complex list of list of list, impossible to work with
 dataEtherScan <- fromJSON(rawToChar(resEtherScan$content), flatten=TRUE)$result
 
-# Change the format of some columns to something more adapted than character
 dataEtherScan <- dataEtherScan %>% 
-  mutate(value=as.numeric(value))
+  mutate(value=as.numeric(value), # Convert price in numeric
+         timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) # Convert the timestamp to a date
 
-# There are many transactions with a value of 0 ether. Among them, not all are not directly linked to a sale. I won't go into details but there are many other actions which trigger transactions (publishing a sales, maintenance of the contract...) and some are but involve a token transfer (wrapped ETH for instance) instead of ether directly. To keep things simple, let's keep only transactions involving transfer of some ether.
+# There are many transactions with a value of 0 ether. Among them, not all are directly linked to sales. We won't go into details here, but there are many other types of actions that can be recorded as transactions (publishing a sale, maintenance of the contract...). Among those that are linked to sales, some involve a token transfer (wrapped ETH for instance) instead of ether directly. To keep things simple, let's keep only transactions involving transfer of some ether.
 dataEtherScan <- dataEtherScan %>% 
   filter(value>0) 
 
@@ -202,8 +209,9 @@ dataEtherScan <- dataEtherScan %>%
 # Histogram of the price distribution (with a log scale as prices are quite spread)
 pHistoEtherScan <- ggplot(dataEtherScan, aes(priceUSD)) + 
   geom_histogram() + 
-  labs(x="Price (USD)", title="Price per sale") + 
+  labs(x="Price (USD)") + 
   scale_x_log10(labels = comma)
+ggsave("figures/histoEtherScan.png", pHistoEtherScan, height=7, width=7)
 pHistoEtherScan
 
 # Pie chart
@@ -221,32 +229,38 @@ dataPieChartEtherScan <- dataEtherScan %>%
 pPieChartEtherScan <- ggplot(dataPieChartEtherScan, aes(x="", y=percent, fill=cut)) +
 geom_bar(width = 1, stat = "identity") + 
   coord_polar("y", start=0) +
-  geom_text(aes(x=1.3, y = cumsum(percent) - percent/2, label=label)) +
+  geom_text_repel(aes(y = cumsum(percent) - percent/2, label=label)) +
   theme_void()
+ggsave("figures/pieChartEtherScan.png", pPieChartEtherScan, height=7, width=7)
 pPieChartEtherScan
 
 # Waffle chart
 dataPieChartEtherScan <- dataPieChartEtherScan %>%
   mutate(n=n/20)
-pWaffle <- waffle(dataPieChartEtherScan, 
+pWaffleEtherScan <- waffle(dataPieChartEtherScan, 
                   rows = 10, 
                   reverse=TRUE,
                   xlab = "1 square = 20 sales") 
-pWaffle
+ggsave("figures/waffleChartEtherScan.png", pWaffleEtherScan, height=5, width=7)
+pWaffleEtherScan
 ```
+
+Note that the price conversion from ETH to USD is not entirely correct. We use current ETH/USD price while some transactions were done some time ago. Even within a single day, there can be substantial price variation! This can be easily solved by retrieving historical ETH/USD price, but this requires an EtherScan Pro account.
 
 # Conclusion
 
-This article introduced how to read the blockchain and obtain transactions data that can be analyzed and plotted. We made here simple plot to represent sales price. That's interesting but there a lot more we can do! In Part II, we will investigate how to go further. We can for example follow specific NFTs and see if there are sold after being purchased the first time or if people keep them... Let me know by which statistics you would be interested!
+This article is an introduction into how to read the blockchain and obtain transactions data that can be analyzed and visualized.  Here, we have shown an example of a simple analysis of blockchain transactions – distribution charts of NFT sales prices. This is a good start but there a lot more we could do! In Part II, we will investigate how to go further. We can, for example, follow specific NFTs and explore the duration of them being in possession after release and the rate of their subsequent reacquisition.  Please let me know which attributes you may find interesting. 
 
-**Note that the code used to generate this article is available on my Github: https://github.com/tdemarchin/AwesomeRmarkdownWordReport
+**Note that the code used to generate this article is available on my Github: https://github.com/tdemarchin/DataScienceOnBlockchainWithR-PartI**
+
+**If you want to help me to subscribe to an EtherScan Pro account and be able to retrieve more transactions, don't hesitate to donate to my ETH address: 0xf5fC137E7428519969a52c710d64406038319169** 
 
 # References
 
--   <https://docs.opensea.io/reference>
--   <https://www.dataquest.io/blog/r-api-tutorial/>
--   <https://ethereum.org/en/nft>
--   <https://influencermarketinghub.com/nft-marketplaces>
--   <https://www.r-bloggers.com/>
--   <https://etherscan.io/>
--   <https://en.wikipedia.org/wiki/Blockchain>
+<https://docs.opensea.io/reference>
+<https://www.dataquest.io/blog/r-api-tutorial/>
+<https://ethereum.org/en/nft>
+<https://influencermarketinghub.com/nft-marketplaces>
+<https://www.r-bloggers.com/>
+<https://etherscan.io/>
+<https://en.wikipedia.org/wiki/Blockchain>
