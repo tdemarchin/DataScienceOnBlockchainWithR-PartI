@@ -258,9 +258,15 @@ This article is an introduction into how to read the blockchain and obtain trans
 # References
 
 <https://docs.opensea.io/reference>
+
 <https://www.dataquest.io/blog/r-api-tutorial/>
+
 <https://ethereum.org/en/nft>
+
 <https://influencermarketinghub.com/nft-marketplaces>
+
 <https://www.r-bloggers.com/>
+
 <https://etherscan.io/>
+
 <https://en.wikipedia.org/wiki/Blockchain>
