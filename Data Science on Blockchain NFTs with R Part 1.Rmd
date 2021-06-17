@@ -170,8 +170,8 @@ Where do we start? Let's focus again on OpenSea: from the data we extracted abov
 Let’s see what we can do with these data.
 
 ```{r fig.cap=c("Histogram of the price per sale. Data from EtherScan API.", "Pie chart of the price per sale. Data from EtherScan API.", "Waffle chart of the price per sale. Data from EtherScan API.")}
-# EtherScan requires a token, have a look at their website
-EtherScanAPIToken <- "Your token"
+# EtherScan requires a token, have a look at their website. Please, use your own token!
+EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9" 
 
 # Retrieve the last 10000 transactions (maximum allowed by Etherscan) from the OpenSea contract
 resEtherScan <- GET("https://api.etherscan.io/api",
