@@ -8,9 +8,6 @@ output: html_document
 ```{r setup, include=FALSE}
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
-
-### To be removed at the end ###
-EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9"
 ```
 
 ![CryptoPunks are the earliest versions of NFTs. Image from www.larvalabs.com/cryptopunks.](figures/cryptopunks.jpg)
@@ -173,6 +170,9 @@ Where do we start? Let's focus again on OpenSea: from the data we extracted abov
 Let’s see what we can do with these data.
 
 ```{r fig.cap=c("Histogram of the price per sale. Data from EtherScan API.", "Pie chart of the price per sale. Data from EtherScan API.", "Waffle chart of the price per sale. Data from EtherScan API.")}
+# EtherScan requires a token, have a look at their website
+EtherScanAPIToken <- "Your token"
+
 # Retrieve the last 10000 transactions (maximum allowed by Etherscan) from the OpenSea contract
 resEtherScan <- GET("https://api.etherscan.io/api",
           query = list(module="account", 
