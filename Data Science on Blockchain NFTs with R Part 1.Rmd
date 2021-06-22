@@ -10,7 +10,7 @@ rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
 ```
 
-![CryptoPunks are the earliest versions of NFTs. Image from www.larvalabs.com/cryptopunks.](figures/cryptopunks.jpg)
+![CryptoPunks are the earliest versions of NFTs (www.larvalabs.com/cryptopunks). Image modified from https://commons.wikimedia.org/wiki/File:Cryptopunks.png.](figures/myCruptoPunks.png)
 
 # Introduction
 
@@ -40,7 +40,7 @@ library(tidyverse)
 library(httr)
 library(jsonlite)
 library(scales)
-library(waffle)
+library(waffle) #install.packages("waffle", repos = "https://cinc.rud.is")
 library(ggrepel)
 ```
 
